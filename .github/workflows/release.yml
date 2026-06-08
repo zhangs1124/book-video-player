@@ -75,11 +75,21 @@ jobs:
             極省資源、永遠最上層的迷你追劇視窗（YouTube / Netflix / Bilibili）。
 
             下載對應平台的檔案：
-            - **Windows**：`.exe`（安裝版）或 `.msi`
+            - **Windows**：`...portable-x64.exe`（免安裝，雙擊即用）／ `_x64-setup.exe`（安裝版）／ `.msi`
             - **macOS**：`.dmg`（aarch64 = Apple Silicon，x64 = Intel）
             - **Linux**：`.AppImage` 或 `.deb`
 
-            功能：永遠最上層、可拖曳縮放、自動隱藏網址列、🎬 只看影片、三大服務捷徑。
+            功能：永遠最上層、可拖曳縮放、自動隱藏網址列、🎬 只看影片、三大服務捷徑、老闆鍵。
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Upload portable exe (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          cp "src-tauri/target/release/yt-float.exe" "YT-Float-${TAG}-portable-x64.exe"
+          gh release upload "$TAG" "YT-Float-${TAG}-portable-x64.exe" --clobber --repo "$GITHUB_REPOSITORY"
