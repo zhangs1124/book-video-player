@@ -65,6 +65,9 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 修正 GitHub runner 無 FUSE 導致 AppImage(linuxdeploy)打包失敗
+          APPIMAGE_EXTRACT_AND_RUN: 1
+          NO_STRIP: true
         with:
           tagName: ${{ github.event.inputs.tag || github.ref_name }}
           releaseName: 'YT Float ${{ github.event.inputs.tag || github.ref_name }}'
