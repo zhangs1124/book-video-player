@@ -1,5 +1,13 @@
 # YT Float · 永遠最上層的迷你追劇視窗
 
+<p align="center">
+  <a href="https://craig7351.github.io/book-video-player/"><img src="https://img.shields.io/badge/🌐_官網-Demo-6c47ff?style=for-the-badge" alt="官網 / Demo"></a>
+  <a href="https://github.com/craig7351/book-video-player/releases/latest"><img src="https://img.shields.io/github/v/release/craig7351/book-video-player?style=for-the-badge&color=3b82f6" alt="最新版本"></a>
+  <a href="https://github.com/craig7351/book-video-player/releases/latest"><img src="https://img.shields.io/badge/下載-Windows_·_macOS_·_Linux-22c55e?style=for-the-badge" alt="下載"></a>
+</p>
+
+> 🌐 **線上介紹頁 / Demo**：<https://craig7351.github.io/book-video-player/>
+
 一個極省資源的浮動瀏覽器，可釘在螢幕右下角「邊工作邊看」YouTube / Netflix / Bilibili。
 
 基於 **Tauri v2 + 系統內建 WebView2**：不像 Electron 要打包整份 Chromium，而是共用系統 Edge 引擎，殼層程式只佔約 **35–50 MB** 記憶體，執行檔極小。
