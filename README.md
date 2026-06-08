@@ -6,6 +6,20 @@
 
 ---
 
+## 📸 畫面截圖
+
+| 一般 YouTube 影片 | 🎬 只看影片（劇場模式） |
+|:---:|:---:|
+| ![一般 YouTube 影片](docs/screenshot-1-youtube.png) | ![只看影片](docs/screenshot-2-cinema.png) |
+| 完整 YouTube 介面，浮動於右下角 | 一鍵隱藏其餘介面，影片填滿整個小視窗 |
+
+| YouTube Shorts 短影音 | 永遠最上層・邊工作邊看 |
+|:---:|:---:|
+| ![Shorts](docs/screenshot-3-shorts.png) | ![最上層](docs/screenshot-4-always-on-top.png) |
+| 直式短影音，🎬 填滿 + 滾輪上下切換 | 釘在桌面右下角，蓋在工作視窗之上 |
+
+---
+
 ## ✨ 功能
 
 - **永遠最上層**：釘在所有視窗之上，拖到右下角邊工作邊看
