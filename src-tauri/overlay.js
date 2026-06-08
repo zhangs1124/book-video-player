@@ -1,0 +1,312 @@
+// 只在最上層 frame 注入,避免 YouTube 內嵌 iframe 也跑一份
+(function () {
+  if (window.top !== window.self) return;
+  if (window.__ytfInjected) return;
+  window.__ytfInjected = true;
+
+  function win() {
+    return window.__TAURI__.window.getCurrentWindow();
+  }
+  function hasTauri() {
+    return !!(window.__TAURI__ && window.__TAURI__.window);
+  }
+
+  function ready(fn) {
+    if (document.body || document.documentElement) return fn();
+    new MutationObserver(function (_, obs) {
+      if (document.documentElement) {
+        obs.disconnect();
+        fn();
+      }
+    }).observe(document, { childList: true, subtree: true });
+  }
+
+  ready(function () {
+    var BAR_H = 32;
+    var GRIP = 6;
+
+    // ---- 樣式 ----
+    var style = document.createElement("style");
+    style.id = "ytf-style";
+    style.textContent = [
+      "#ytf-bar{position:fixed;top:0;left:0;right:0;height:" + BAR_H + "px;z-index:2147483647;",
+      "display:flex;align-items:center;gap:6px;padding:0 6px;box-sizing:border-box;",
+      "background:rgba(20,20,20,.95);backdrop-filter:blur(6px);font:13px system-ui,sans-serif;",
+      "color:#eee;transform:translateY(-100%);transition:transform .15s ease;}",
+      "#ytf-bar.show{transform:translateY(0);}",
+      "#ytf-drag{flex:1;height:100%;cursor:grab;display:flex;align-items:center;}",
+      "#ytf-url{flex:1;min-width:0;height:22px;border:none;border-radius:4px;padding:0 8px;",
+      "background:#333;color:#fff;outline:none;font:12px system-ui;}",
+      ".ytf-btn{min-width:24px;height:22px;border:none;border-radius:4px;background:#333;color:#ddd;",
+      "cursor:pointer;font-size:13px;line-height:22px;padding:0 4px;}",
+      ".ytf-btn:hover{background:#555;}",
+      "#ytf-pin.on,.ytf-btn.on{background:#c00;color:#fff;}",
+      ".ytf-svc{font-weight:700;letter-spacing:.5px;filter:saturate(1.1);}",
+      ".ytf-svc:hover{filter:brightness(1.2);}",
+      // 🎬 劇場模式：隱藏頁面其餘部分,讓播放器填滿視窗
+      "html.ytf-cinema{overflow:hidden !important;}",
+      "html.ytf-cinema #masthead-container,html.ytf-cinema #masthead,",
+      "html.ytf-cinema ytd-watch-metadata,html.ytf-cinema #secondary,",
+      "html.ytf-cinema #secondary-inner,html.ytf-cinema #comments,",
+      "html.ytf-cinema #below,html.ytf-cinema #chat,html.ytf-cinema #chat-container,",
+      "html.ytf-cinema ytd-merch-shelf-renderer,html.ytf-cinema #related,",
+      "html.ytf-cinema tp-yt-app-header,html.ytf-cinema #header{display:none !important;}",
+      "html.ytf-cinema #movie_player,html.ytf-cinema .html5-video-player{",
+      "position:fixed !important;inset:0 !important;width:100vw !important;",
+      "height:100vh !important;z-index:9000 !important;background:#000 !important;}",
+      "html.ytf-cinema .html5-video-container{position:absolute !important;inset:0 !important;",
+      "width:100% !important;height:100% !important;}",
+      "html.ytf-cinema #movie_player video,html.ytf-cinema .html5-video-player video,",
+      "html.ytf-cinema .bpx-player-container video{",
+      "position:absolute !important;left:0 !important;top:0 !important;",
+      "width:100% !important;height:100% !important;object-fit:contain !important;}",
+      // Bilibili 播放器
+      "html.ytf-cinema .bpx-player-container{position:fixed !important;inset:0 !important;",
+      "width:100vw !important;height:100vh !important;z-index:2147483600 !important;",
+      "background:#000 !important;margin:0 !important;padding:0 !important;}",
+      "html.ytf-cinema .bpx-player-primary-area,html.ytf-cinema .bpx-player-video-area,",
+      "html.ytf-cinema .bpx-player-video-perch,html.ytf-cinema .bpx-player-video-wrap{",
+      "position:absolute !important;inset:0 !important;width:100% !important;height:100% !important;}",
+      "html.ytf-cinema #biliMainHeader,html.ytf-cinema .bili-header,",
+      "html.ytf-cinema .fixed-header{display:none !important;}",
+      // Bilibili 彈幕層 + 頂部發送列
+      "html.ytf-cinema .bpx-player-sending-bar,html.ytf-cinema .bpx-player-top,",
+      "html.ytf-cinema [class*=dm-wrap]{display:none !important;}",
+      "#ytf-handle{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:2147483647;",
+      "width:90px;height:8px;border-radius:0 0 7px 7px;background:rgba(200,0,0,.85);cursor:grab;}",
+      "#ytf-handle:hover{height:13px;background:rgba(225,0,0,1);}",
+      "#ytf-handle:active{cursor:grabbing;}",
+      "#ytf-hot{position:fixed;top:0;left:0;right:0;height:24px;z-index:2147483646;}",
+      ".ytf-rs{position:fixed;z-index:2147483645;}",
+      ".ytf-n{top:0;left:0;right:0;height:" + GRIP + "px;cursor:ns-resize;}",
+      ".ytf-s{bottom:0;left:0;right:0;height:" + GRIP + "px;cursor:ns-resize;}",
+      ".ytf-w{top:0;bottom:0;left:0;width:" + GRIP + "px;cursor:ew-resize;}",
+      ".ytf-e{top:0;bottom:0;right:0;width:" + GRIP + "px;cursor:ew-resize;}",
+      ".ytf-nw{top:0;left:0;width:14px;height:14px;cursor:nwse-resize;}",
+      ".ytf-ne{top:0;right:0;width:14px;height:14px;cursor:nesw-resize;}",
+      ".ytf-sw{bottom:0;left:0;width:14px;height:14px;cursor:nesw-resize;}",
+      ".ytf-se{bottom:0;right:0;width:14px;height:14px;cursor:nwse-resize;}",
+    ].join("");
+
+    // ---- 顯示 / 隱藏 ----
+    var hideTimer;
+    function show() {
+      clearTimeout(hideTimer);
+      bar.classList.add("show");
+    }
+    function hide() {
+      if (bar.classList.contains("pinned")) return;
+      if (document.activeElement === url) return;
+      bar.classList.remove("show");
+    }
+
+    // ---- 工具列 ----
+    var bar = document.createElement("div");
+    bar.id = "ytf-bar";
+
+    var drag = document.createElement("div");
+    drag.id = "ytf-drag";
+    drag.title = "拖曳移動視窗";
+    drag.addEventListener("mousedown", function (e) {
+      if (e.button !== 0 || e.target !== drag) return;
+      if (hasTauri()) win().startDragging();
+    });
+
+    var url = document.createElement("input");
+    url.id = "ytf-url";
+    url.type = "text";
+    url.placeholder = "輸入網址或 YouTube 連結，按 Enter";
+    url.value = location.href;
+    url.addEventListener("keydown", function (e) {
+      e.stopPropagation();
+      if (e.key === "Enter") {
+        var v = url.value.trim();
+        if (!v) return;
+        if (!/^https?:\/\//i.test(v)) v = "https://" + v;
+        location.assign(v);
+      } else if (e.key === "Escape") {
+        url.blur();
+        hide();
+      }
+    });
+    url.addEventListener("focus", show);
+    drag.appendChild(url);
+
+    var pin = document.createElement("button");
+    pin.id = "ytf-pin";
+    pin.className = "ytf-btn";
+    pin.textContent = "📌";
+    pin.title = "釘選工具列（不自動隱藏）";
+    pin.addEventListener("click", function () {
+      bar.classList.toggle("pinned");
+      pin.classList.toggle("on", bar.classList.contains("pinned"));
+    });
+
+    // ◀ ▶ 上一頁 / 下一頁
+    var back = document.createElement("button");
+    back.className = "ytf-btn";
+    back.textContent = "◀";
+    back.title = "上一頁";
+    back.addEventListener("click", function () { history.back(); });
+
+    var fwd = document.createElement("button");
+    fwd.className = "ytf-btn";
+    fwd.textContent = "▶";
+    fwd.title = "下一頁";
+    fwd.addEventListener("click", function () { history.forward(); });
+
+    // 服務快速跳轉鈕
+    function navBtn(label, target, bg) {
+      var b = document.createElement("button");
+      b.className = "ytf-btn ytf-svc";
+      b.textContent = label;
+      b.title = "前往 " + target;
+      b.style.background = bg;
+      b.style.color = "#fff";
+      b.addEventListener("click", function () { location.assign(target); });
+      return b;
+    }
+    var svcYT = navBtn("YT", "https://www.youtube.com", "#cc0000");
+    var svcNF = navBtn("NF", "https://www.netflix.com", "#b1060f");
+    var svcBI = navBtn("B", "https://www.bilibili.com", "#00a1d6");
+
+    // 🎬 只看影片：CSS 劇場模式，隱藏頁面其餘部分、播放器填滿視窗（不換頁，無嵌入限制）
+    var cinema = document.createElement("button");
+    cinema.className = "ytf-btn";
+    cinema.textContent = "🎬";
+    cinema.title = "只看影片（隱藏其餘介面，播放器填滿視窗）";
+    function hasPlayer() {
+      return !!document.querySelector(
+        "#movie_player, .html5-video-player, .bpx-player-container, video"
+      );
+    }
+    function setCinema(on) {
+      document.documentElement.classList.toggle("ytf-cinema", on);
+      cinema.classList.toggle("on", on);
+      // 通知 YouTube 重新計算播放器尺寸
+      window.dispatchEvent(new Event("resize"));
+      setTimeout(function () { window.dispatchEvent(new Event("resize")); }, 200);
+    }
+    cinema.addEventListener("click", function () {
+      // Netflix 觀看頁本來就是全畫面影片,不需要也不應套用(會干擾其播放器)
+      if (/netflix\.com$/.test(location.hostname)) {
+        show();
+        url.value = "Netflix 本來就是全畫面影片，免按 🎬";
+        return;
+      }
+      var on = !document.documentElement.classList.contains("ytf-cinema");
+      if (on && !hasPlayer()) {
+        show();
+        url.value = "請先點開一支影片，再按 🎬";
+        return;
+      }
+      setCinema(on);
+    });
+
+    var close = document.createElement("button");
+    close.className = "ytf-btn";
+    close.textContent = "✕";
+    close.title = "隱藏到系統匣";
+    close.addEventListener("click", function () { if (hasTauri()) win().hide(); });
+
+    bar.appendChild(back);
+    bar.appendChild(fwd);
+    bar.appendChild(drag);
+    bar.appendChild(svcYT);
+    bar.appendChild(svcNF);
+    bar.appendChild(svcBI);
+    bar.appendChild(cinema);
+    bar.appendChild(pin);
+    bar.appendChild(close);
+    bar.addEventListener("mouseenter", show);
+    bar.addEventListener("mouseleave", function () {
+      hideTimer = setTimeout(hide, 600);
+    });
+
+    // 永遠可見的握把
+    var handle = document.createElement("div");
+    handle.id = "ytf-handle";
+    handle.title = "按住拖曳移動視窗 · 移到此處顯示網址列 · 雙擊聚焦網址列";
+    handle.addEventListener("mouseenter", show);
+    handle.addEventListener("mousedown", function (e) {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      show();
+      if (hasTauri()) win().startDragging();
+    });
+    handle.addEventListener("dblclick", function () {
+      show();
+      url.focus();
+      url.select();
+    });
+
+    // 頂部感應條
+    var hot = document.createElement("div");
+    hot.id = "ytf-hot";
+    hot.addEventListener("mouseenter", show);
+
+    // 縮放感應區
+    var grips = [];
+    [["n","North"],["s","South"],["w","West"],["e","East"],
+     ["nw","NorthWest"],["ne","NorthEast"],["sw","SouthWest"],["se","SouthEast"]
+    ].forEach(function (d) {
+      var g = document.createElement("div");
+      g.className = "ytf-rs ytf-" + d[0];
+      g.addEventListener("mousedown", function (e) {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        if (hasTauri()) win().startResizeDragging(d[1]);
+      });
+      grips.push(g);
+    });
+
+    // ---- 掛載 + keepalive：被 SPA 清掉就補回 ----
+    var nodes = [bar, handle, hot].concat(grips);
+    function mount() {
+      var html = document.documentElement;
+      if (!html) return;
+      if (!document.getElementById("ytf-style")) {
+        (document.head || html).appendChild(style);
+      }
+      nodes.forEach(function (n) {
+        if (!n.isConnected) html.appendChild(n);
+      });
+    }
+    mount();
+    setInterval(mount, 1000);
+
+    // 讓「開新分頁」的連結改在同一視窗開啟（修正 Bilibili 等點影片沒反應）
+    window.open = function (u) {
+      if (u) { try { location.assign(u); } catch (e) {} }
+      return null;
+    };
+    document.addEventListener("click", function (e) {
+      var a = e.target && e.target.closest && e.target.closest("a[href]");
+      if (!a) return;
+      if (a.target === "_blank" || a.getAttribute("target") === "_blank") {
+        e.preventDefault();
+        e.stopPropagation();
+        location.assign(a.href);
+      }
+    }, true);
+
+    // 熱鍵:Ctrl+L
+    window.addEventListener("keydown", function (e) {
+      if (e.ctrlKey && (e.key === "l" || e.key === "L")) {
+        e.preventDefault();
+        show();
+        url.focus();
+        url.select();
+      }
+    }, true);
+
+    // 同步網址顯示（SPA 導航時）
+    setInterval(function () {
+      if (document.activeElement !== url) url.value = location.href;
+    }, 1500);
+
+    // 啟動時自動秀出 4 秒
+    show();
+    hideTimer = setTimeout(hide, 4000);
+  });
+})();

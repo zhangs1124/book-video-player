@@ -1,0 +1,19 @@
+# Rust / Tauri build output
+/src-tauri/target/
+
+# Tauri 自動產生的 schema（build 時會重建）
+/src-tauri/gen/
+
+# Node
+node_modules/
+
+# 開發/除錯產生的記錄檔
+run.log
+build.log
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
