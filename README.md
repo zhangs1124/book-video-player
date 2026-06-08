@@ -1,5 +1,7 @@
 # YT Float · 永遠最上層的迷你追劇視窗
 
+**繁體中文** ｜ [English](README.en.md)
+
 <p align="center">
   <a href="https://craig7351.github.io/book-video-player/"><img src="https://img.shields.io/badge/🌐_官網-Demo-6c47ff?style=for-the-badge" alt="官網 / Demo"></a>
   <a href="https://github.com/craig7351/book-video-player/releases/latest"><img src="https://img.shields.io/github/v/release/craig7351/book-video-player?style=for-the-badge&color=3b82f6" alt="最新版本"></a>
