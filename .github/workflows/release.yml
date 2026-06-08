@@ -91,5 +91,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
-          cp "src-tauri/target/release/yt-float.exe" "YT-Float-${TAG}-portable-x64.exe"
-          gh release upload "$TAG" "YT-Float-${TAG}-portable-x64.exe" --clobber --repo "$GITHUB_REPOSITORY"
+          # 固定檔名（不含版號），方便用 releases/latest/download 做永久連結
+          cp "src-tauri/target/release/yt-float.exe" "YT-Float-portable-x64.exe"
+          gh release upload "$TAG" "YT-Float-portable-x64.exe" --clobber --repo "$GITHUB_REPOSITORY"
