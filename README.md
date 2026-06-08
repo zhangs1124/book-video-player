@@ -122,6 +122,18 @@ cargo build --release --manifest-path src-tauri/Cargo.toml
 
 ---
 
+## 🔒 安全與透明
+
+本專案所有 [Release](https://github.com/craig7351/book-video-player/releases) 安裝檔，都是由 **GitHub Actions 直接從本 repo 的開源原始碼自動編譯**並上傳的 —— **沒有任何人從自己電腦手動打包上傳**的步驟。
+
+- **原始碼公開**：每一行程式碼都看得到（核心在 `src-tauri/`）
+- **建置流程公開可稽核**：編譯腳本見 [`.github/workflows/release.yml`](.github/workflows/release.yml)，每次建置的完整紀錄都在 [Actions](https://github.com/craig7351/book-video-player/actions)
+- 因此你下載的檔案，內容對應的就是公開的程式碼，**相對能放心不會被夾帶病毒或後門**
+
+> 註：自動建置能大幅降低「被偷塞惡意程式」的風險（過程公開、可稽核），但無法 100% 保證絕對安全。若不放心，歡迎自行 clone 原始碼用 `npm run tauri build` 編譯。
+
+---
+
 ## 📝 授權
 
 個人用途自由使用。各影音服務內容版權歸原權利人所有，本工具僅為瀏覽器外殼。
