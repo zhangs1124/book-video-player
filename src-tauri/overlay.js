@@ -51,15 +51,22 @@
       "html.ytf-cinema #below,html.ytf-cinema #chat,html.ytf-cinema #chat-container,",
       "html.ytf-cinema ytd-merch-shelf-renderer,html.ytf-cinema #related,",
       "html.ytf-cinema tp-yt-app-header,html.ytf-cinema #header{display:none !important;}",
-      "html.ytf-cinema #movie_player,html.ytf-cinema .html5-video-player{",
+      // 一般 YouTube 影片用 #movie_player；Shorts 用 #shorts-player（避開隱藏的 #movie_player decoy）
+      "html.ytf-cinema:not(.ytf-shorts) #movie_player,html.ytf-shorts #shorts-player{",
       "position:fixed !important;inset:0 !important;width:100vw !important;",
       "height:100vh !important;z-index:9000 !important;background:#000 !important;}",
-      "html.ytf-cinema .html5-video-container{position:absolute !important;inset:0 !important;",
-      "width:100% !important;height:100% !important;}",
-      "html.ytf-cinema #movie_player video,html.ytf-cinema .html5-video-player video,",
+      "html.ytf-cinema:not(.ytf-shorts) #movie_player .html5-video-container,",
+      "html.ytf-shorts #shorts-player .html5-video-container{position:absolute !important;",
+      "inset:0 !important;width:100% !important;height:100% !important;}",
+      "html.ytf-cinema:not(.ytf-shorts) #movie_player video,html.ytf-shorts #shorts-player video,",
       "html.ytf-cinema .bpx-player-container video{",
       "position:absolute !important;left:0 !important;top:0 !important;",
       "width:100% !important;height:100% !important;object-fit:contain !important;}",
+      // Shorts：隱藏右側按鈕/字幕覆蓋層
+      "html.ytf-shorts ytd-reel-player-overlay-renderer{display:none !important;}",
+      // Shorts：取消 CSS containment，否則 position:fixed 會相對它定位（造成左/上空白）
+      "html.ytf-shorts .reel-video-in-sequence-new,html.ytf-shorts ytd-reel-video-renderer,",
+      "html.ytf-shorts #shorts-container,html.ytf-shorts ytd-shorts{contain:none !important;}",
       // Bilibili 播放器
       "html.ytf-cinema .bpx-player-container{position:fixed !important;inset:0 !important;",
       "width:100vw !important;height:100vh !important;z-index:2147483600 !important;",
@@ -181,9 +188,11 @@
       );
     }
     function setCinema(on) {
+      var isShorts = /\/shorts\//.test(location.pathname);
       document.documentElement.classList.toggle("ytf-cinema", on);
+      document.documentElement.classList.toggle("ytf-shorts", on && isShorts);
       cinema.classList.toggle("on", on);
-      // 通知 YouTube 重新計算播放器尺寸
+      // 通知播放器重新計算尺寸
       window.dispatchEvent(new Event("resize"));
       setTimeout(function () { window.dispatchEvent(new Event("resize")); }, 200);
     }
@@ -289,6 +298,24 @@
         location.assign(a.href);
       }
     }, true);
+
+    // Shorts 劇場模式:滾輪切換上/下一支（劇場模式蓋住原生滾動區，改觸發原生導航鈕）
+    var wheelLock = false;
+    window.addEventListener("wheel", function (e) {
+      if (!document.documentElement.classList.contains("ytf-shorts")) return;
+      e.preventDefault();
+      if (wheelLock || Math.abs(e.deltaY) < 8) return;
+      wheelLock = true;
+      setTimeout(function () { wheelLock = false; }, 550);
+      var sel = e.deltaY > 0
+        ? "#navigation-button-down button"
+        : "#navigation-button-up button";
+      var btn = document.querySelector(sel);
+      if (btn) {
+        btn.click();
+        setTimeout(function () { window.dispatchEvent(new Event("resize")); }, 250);
+      }
+    }, { passive: false, capture: true });
 
     // 熱鍵:Ctrl+L
     window.addEventListener("keydown", function (e) {

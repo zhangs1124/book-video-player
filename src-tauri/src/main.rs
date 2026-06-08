@@ -11,8 +11,32 @@ const START_URL: &str = "https://m.youtube.com";
 const WIN_W: f64 = 400.0;
 const WIN_H: f64 = 300.0;
 
+// 老闆鍵：切換視窗顯示/隱藏；隱藏時暫停影片(避免聲音穿幫)
+fn toggle_boss<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    if let Some(win) = app.get_webview_window("main") {
+        if win.is_visible().unwrap_or(true) {
+            let _ = win.eval(
+                "document.querySelectorAll('video').forEach(function(v){try{v.pause()}catch(e){}})",
+            );
+            let _ = win.hide();
+        } else {
+            let _ = win.show();
+            let _ = win.set_focus();
+        }
+    }
+}
+
 fn main() {
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, _shortcut, event| {
+                    if event.state() == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        toggle_boss(app);
+                    }
+                })
+                .build(),
+        )
         .setup(|app| {
             let win = WebviewWindowBuilder::new(
                 app,
@@ -58,6 +82,16 @@ fn main() {
                     _ => {}
                 })
                 .build(app)?;
+
+            // 註冊老闆鍵 Ctrl+Shift+Z（全域）
+            {
+                use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+                let boss = Shortcut::new(
+                    Some(Modifiers::CONTROL | Modifiers::SHIFT),
+                    Code::KeyZ,
+                );
+                app.global_shortcut().register(boss)?;
+            }
 
             Ok(())
         })
