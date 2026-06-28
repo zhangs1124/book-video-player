@@ -76,9 +76,15 @@ fn main() {
             let mut data_dir = app.path().app_local_data_dir().unwrap_or_else(|_| {
                 std::env::temp_dir()
             });
-            // 若為第二個以上的實例，則建立獨立的快取資料夾以避免 WebView2 鎖定衝突
+            // 若為第二個以上的實例，則將目錄名稱改為平級的（例如 com.ytfloat.app_2）
+            // 避免因為父子目錄重疊（如 com.ytfloat.app/instance_2）導致 WebView2 父級鎖定衝突
             if instance_id > 1 {
-                data_dir.push(format!("instance_{}", instance_id));
+                if let Some(name) = data_dir.file_name() {
+                    let new_name = format!("{}_{}", name.to_string_lossy(), instance_id);
+                    data_dir.set_file_name(new_name);
+                } else {
+                    data_dir.push(format!("instance_{}", instance_id));
+                }
             }
 
             let win = WebviewWindowBuilder::new(
