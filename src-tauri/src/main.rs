@@ -42,6 +42,19 @@ fn toggle_boss<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
 }
 
 fn main() {
+    let mut instance_id = 1;
+    // 使用 TcpListener 佔用連接埠來標記實例序號，程式結束時會自動釋放
+    let _listener_1 = std::net::TcpListener::bind("127.0.0.1:54321").ok();
+    let _listener_2 = if _listener_1.is_none() {
+        instance_id = 2;
+        std::net::TcpListener::bind("127.0.0.1:54322").ok()
+    } else {
+        None
+    };
+    if _listener_1.is_none() && _listener_2.is_none() {
+        instance_id = 3;
+    }
+
     tauri::Builder::default()
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -52,18 +65,28 @@ fn main() {
                 })
                 .build(),
         )
-        .setup(|app| {
+        .setup(move |app| {
             // 生成唯一的 window ID
             let window_id = format!(
                 "main_{}",
                 WINDOW_COUNTER.fetch_add(1, Ordering::SeqCst)
             );
 
+            // 取得預設的本地 App Data 目錄
+            let mut data_dir = app.path().app_local_data_dir().unwrap_or_else(|_| {
+                std::env::temp_dir()
+            });
+            // 若為第二個以上的實例，則建立獨立的快取資料夾以避免 WebView2 鎖定衝突
+            if instance_id > 1 {
+                data_dir.push(format!("instance_{}", instance_id));
+            }
+
             let win = WebviewWindowBuilder::new(
                 app,
                 &window_id,
                 WebviewUrl::External(START_URL.parse().unwrap()),
             )
+            .data_directory(data_dir)
             .title("YT Float")
             .decorations(false)
             .always_on_top(true)
