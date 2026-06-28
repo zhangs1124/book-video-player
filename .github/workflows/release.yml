@@ -15,20 +15,7 @@ jobs:
   build:
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: 'macos-latest'      # Apple Silicon
-            args: '--target aarch64-apple-darwin'
-          - platform: 'macos-latest'      # Intel
-            args: '--target x86_64-apple-darwin'
-          - platform: 'ubuntu-22.04'
-            args: ''
-          - platform: 'windows-latest'
-            args: ''
-
-    runs-on: ${{ matrix.platform }}
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -39,24 +26,11 @@ jobs:
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
-
-      - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf \
-            libgtk-3-dev
 
       - name: Install frontend dependencies
         run: npm install
@@ -65,9 +39,6 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # 修正 GitHub runner 無 FUSE 導致 AppImage(linuxdeploy)打包失敗
-          APPIMAGE_EXTRACT_AND_RUN: 1
-          NO_STRIP: true
         with:
           tagName: ${{ github.event.inputs.tag || github.ref_name }}
           releaseName: 'YT Float ${{ github.event.inputs.tag || github.ref_name }}'
@@ -76,16 +47,12 @@ jobs:
 
             下載對應平台的檔案：
             - **Windows**：`...portable-x64.exe`（免安裝，雙擊即用）／ `_x64-setup.exe`（安裝版）／ `.msi`
-            - **macOS**：`.dmg`（aarch64 = Apple Silicon，x64 = Intel）
-            - **Linux**：`.AppImage` 或 `.deb`
 
             功能：永遠最上層、可拖曳縮放、自動隱藏網址列、🎬 只看影片、三大服務捷徑、老闆鍵。
           releaseDraft: false
           prerelease: false
-          args: ${{ matrix.args }}
 
       - name: Upload portable exe (Windows)
-        if: matrix.platform == 'windows-latest'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -94,3 +61,4 @@ jobs:
           # 固定檔名（不含版號），方便用 releases/latest/download 做永久連結
           cp "src-tauri/target/release/yt-float.exe" "YT-Float-portable-x64.exe"
           gh release upload "$TAG" "YT-Float-portable-x64.exe" --clobber --repo "$GITHUB_REPOSITORY"
+
