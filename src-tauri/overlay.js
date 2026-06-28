@@ -139,10 +139,26 @@
     url.addEventListener("focus", show);
     drag.appendChild(url);
 
+    var ontop = document.createElement("button");
+    ontop.id = "ytf-ontop";
+    ontop.className = "ytf-btn on";
+    ontop.textContent = "📌";
+    ontop.title = "永遠最上層開關（釘在螢幕最前方）";
+    var alwaysOnTop = true;
+    ontop.addEventListener("click", function () {
+      alwaysOnTop = !alwaysOnTop;
+      ontop.classList.toggle("on", alwaysOnTop);
+      if (hasTauri()) {
+        win().setAlwaysOnTop(alwaysOnTop).catch(function(e) {
+          console.error("Failed to set always on top:", e);
+        });
+      }
+    });
+
     var pin = document.createElement("button");
     pin.id = "ytf-pin";
     pin.className = "ytf-btn";
-    pin.textContent = "📌";
+    pin.textContent = "⚓";
     pin.title = "釘選工具列（不自動隱藏）";
     pin.addEventListener("click", function () {
       bar.classList.toggle("pinned");
@@ -225,6 +241,7 @@
     bar.appendChild(svcNF);
     bar.appendChild(svcBI);
     bar.appendChild(cinema);
+    bar.appendChild(ontop);
     bar.appendChild(pin);
     bar.appendChild(close);
     bar.addEventListener("mouseenter", show);
