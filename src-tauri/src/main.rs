@@ -149,7 +149,8 @@ fn main() {
                     Some(Modifiers::CONTROL | Modifiers::SHIFT),
                     Code::KeyZ,
                 );
-                app.global_shortcut().register(boss)?;
+                // 忽略註冊失敗（若已被第一個實例註冊，第二個實例仍可正常啟動）
+                let _ = app.global_shortcut().register(boss);
             }
 
             Ok(())
